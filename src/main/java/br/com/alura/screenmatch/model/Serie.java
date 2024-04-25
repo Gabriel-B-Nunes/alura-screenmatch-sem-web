@@ -2,6 +2,7 @@ package br.com.alura.screenmatch.model;
 
 import br.com.alura.screenmatch.service.ConsultaChatGPT;
 import jakarta.persistence.*;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.OptionalDouble;
@@ -21,7 +22,7 @@ public class Serie {
     private String atores;
     private String poster;
     private String sinopse;
-    @Transient
+    @OneToMany(mappedBy = "serie", cascade = CascadeType.ALL, fetch = FetchType.EAGER)
     private List<Episodio> episodios = new ArrayList<>();
 
     public Serie(DadosSerie dadosSerie) {
@@ -30,11 +31,14 @@ public class Serie {
         this.totalTemporadas = dadosSerie.totalTemporadas();
         this.genero = Categoria.fromString(dadosSerie.genero().split(",")[0].trim());
         this.atores = dadosSerie.atores();
-        this. poster = dadosSerie.poster();
+        this.poster = dadosSerie.poster();
         this.sinopse = ConsultaChatGPT.obterTraducao(dadosSerie.sinopse());
     }
 
-    public Serie() {};
+    public Serie() {
+    }
+
+    ;
 
     public String getTitulo() {
         return titulo;
@@ -97,18 +101,28 @@ public class Serie {
     }
 
     public void setEpisodios(List<Episodio> episodios) {
+        episodios.forEach(e -> e.setSerie(this));
         this.episodios = episodios;
+    }
+
+    public long getId() {
+        return id;
+    }
+
+    public void setId(long id) {
+        this.id = id;
     }
 
     @Override
     public String toString() {
         return
                 "genero=" + genero +
-                ", titulo='" + titulo + '\'' +
-                ", avaliacao=" + avaliacao +
-                ", totalTemporadas=" + totalTemporadas +
-                ", atores='" + atores + '\'' +
-                ", poster='" + poster + '\'' +
-                ", sinopse='" + sinopse + '\'';
+                        ", titulo='" + titulo + '\'' +
+                        ", avaliacao=" + avaliacao +
+                        ", totalTemporadas=" + totalTemporadas +
+                        ", atores='" + atores + '\'' +
+                        ", poster='" + poster + '\'' +
+                        ", sinopse='" + sinopse + '\'' +
+                        ", episodios='" + episodios + '\'';
     }
 }

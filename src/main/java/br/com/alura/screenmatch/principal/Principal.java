@@ -2,14 +2,13 @@ package br.com.alura.screenmatch.principal;
 
 import br.com.alura.screenmatch.model.DadosSerie;
 import br.com.alura.screenmatch.model.DadosTemporada;
+import br.com.alura.screenmatch.model.Episodio;
 import br.com.alura.screenmatch.model.Serie;
 import br.com.alura.screenmatch.repository.SerieRepository;
 import br.com.alura.screenmatch.service.ConsumoAPI;
 import br.com.alura.screenmatch.service.ConverteDados;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Scanner;
+
+import java.util.*;
 import java.util.stream.Collectors;
 
 public class Principal {
@@ -21,6 +20,7 @@ public class Principal {
     private final String API_KEY = "&apikey=6585022c";
     private List<DadosSerie> dadosSerieList = new ArrayList<>();
     private SerieRepository repository;
+    private List<Serie> serieList = new ArrayList<>();
 
     public Principal (SerieRepository repository) {
         this.repository = repository;
@@ -33,6 +33,7 @@ public class Principal {
                     1 - Buscar séries
                     2 - Buscar episódios
                     3 - Listar séries buscadas
+                    4 - Buscar série por título
                                     
                     0  - sair
                     """);
@@ -50,6 +51,10 @@ public class Principal {
 
                 case 3:
                     listarSeriesBuscadas();
+                    break;
+
+                case 4:
+                    buscarSeriePorTitulo();
                     break;
 
                 case 0:
@@ -70,24 +75,50 @@ public class Principal {
     }
 
     public void buscasEpisodioPorSerie() {
+        listarSeriesBuscadas();
         System.out.println("Digite o nome da série");
-        String nomeSerie = leitura.nextLine().replace(" ", "+");
-        String busca = ENDERECO + nomeSerie + API_KEY;
-        String json = consumo.obterDados(busca);
-        DadosSerie dadosSerie = conversor.obterDados(json, DadosSerie.class);
-        for (int i = 1; i <= dadosSerie.totalTemporadas(); i++) {
-            busca = ENDERECO + nomeSerie + "&season=" + i + API_KEY;
-            json = consumo.obterDados(busca);
-            DadosTemporada dadosTemporada = conversor.obterDados(json, DadosTemporada.class);
-            dadosTemporada.episodios().forEach(System.out::println);
+        String nomeSerie = leitura.nextLine();
+
+        Optional<Serie> serie = repository.findByTituloContainingIgnoreCase(nomeSerie);
+
+        if (serie.isPresent()) {
+            Serie serieEncontrada = serie.get();
+            List<DadosTemporada> dadosTemporadaList = new ArrayList<>();
+
+            for (int i = 1; i <= serieEncontrada.getTotalTemporadas(); i++) {
+                String busca = ENDERECO + serieEncontrada.getTitulo().replace(" ", "+").toLowerCase() + "&season=" + i + API_KEY;
+                String json = consumo.obterDados(busca);
+                DadosTemporada dadosTemporada = conversor.obterDados(json, DadosTemporada.class);
+                dadosTemporadaList.add(dadosTemporada);
+            }
+            dadosTemporadaList.forEach(System.out::println);
+            List<Episodio> episodioList = dadosTemporadaList.stream()
+                    .flatMap(d -> d.episodios()
+                            .stream()
+                            .map(e -> new Episodio(d.numero(), e)))
+                    .collect(Collectors.toList());
+            serieEncontrada.setEpisodios(episodioList);
+            repository.save(serieEncontrada);
+        } else {
+            System.out.println("Série não encontrada!");
         }
     }
 
     public void listarSeriesBuscadas() {
-        List<Serie> serieList = new ArrayList<>();
         serieList = repository.findAll();
         serieList.stream()
                 .sorted(Comparator.comparing(Serie::getGenero))
                 .forEach(System.out::println);
+    }
+
+    public void buscarSeriePorTitulo() {
+        System.out.println("Digite o nome da série");
+        String nomeSerie = leitura.nextLine();
+        Optional<Serie> serieOptional = repository.findByTituloContainingIgnoreCase(nomeSerie);
+        if (serieOptional.isPresent()) {
+            System.out.println(serieOptional.get());
+        } else {
+            System.out.println("Série não encontrada!");
+        }
     }
 }
