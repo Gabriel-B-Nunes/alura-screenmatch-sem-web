@@ -4,9 +4,6 @@ import br.com.alura.screenmatch.model.*;
 import br.com.alura.screenmatch.repository.SerieRepository;
 import br.com.alura.screenmatch.service.ConsumoAPI;
 import br.com.alura.screenmatch.service.ConverteDados;
-import ch.qos.logback.core.encoder.JsonEscapeUtil;
-
-import java.sql.SQLOutput;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -20,6 +17,7 @@ public class Principal {
     private List<DadosSerie> dadosSerieList = new ArrayList<>();
     private SerieRepository repository;
     private List<Serie> serieList = new ArrayList<>();
+    private Optional<Serie> serieOptional;
 
     public Principal(SerieRepository repository) {
         this.repository = repository;
@@ -36,7 +34,10 @@ public class Principal {
                     5 - Buscar séries por ator
                     6 - Top 5 séries
                     7 - Buscar séries por categoria
-                    8 - Buscar séries por total temporadas e avaliação
+                    8 - Filtrar séries
+                    9 - Buscar episódios por trecho
+                    10 - Top 5 episódios por série
+                    11 - Buscar episódios a partir de uma data
                                     
                     0  - sair
                     """);
@@ -76,6 +77,18 @@ public class Principal {
                     buscarSeriesPorTemporadaAvaliacao();
                     break;
 
+                case 9:
+                    buscarEpisodiosPorTrecho();
+                    break;
+
+                case 10:
+                    buscarTop5EpisodiosPorSerie();
+                    break;
+
+                case 11:
+                    buscarEpisodiosAPartirDeUmaData();
+                    break;
+
                 case 0:
                     opcao = 0;
                     break;
@@ -83,6 +96,38 @@ public class Principal {
                 default:
                     System.out.println("Opção inválida");
             }
+        }
+    }
+
+    private void buscarEpisodiosAPartirDeUmaData() {
+        buscarSeriePorTitulo();
+        System.out.println("Informe o ano");
+        Integer ano = leitura.nextInt();
+        leitura.nextLine();
+        List<Episodio> episodioList = repository.buscarEpisodiosAPartirDeUmaData(serieOptional.get(), ano);
+        if (!episodioList.isEmpty()) {
+            episodioList.forEach(System.out::println);
+        } else {
+            System.out.println("Nenhum resultado encontrado!");
+        }
+    }
+
+    private void buscarTop5EpisodiosPorSerie() {
+        buscarSeriePorTitulo();
+        List<Episodio> episodioList = repository.buscaTop5EpisodiosPorSerie(serieOptional.get());
+        if (!episodioList.isEmpty()) {
+            episodioList.forEach(System.out::println);
+        }
+    }
+
+    private void buscarEpisodiosPorTrecho() {
+        System.out.println("Digite um trecho do nome do episódio");
+        String trechoEpisodio = leitura.nextLine();
+        List<Episodio> episodioList = repository.buscaEpisodiosPorTrecho(trechoEpisodio);
+        if (!episodioList.isEmpty()) {
+            episodioList.forEach(System.out::println);
+        } else {
+            System.out.println("Nenhum resultado encontrado!");
         }
     }
 
@@ -137,7 +182,7 @@ public class Principal {
     private void buscarSeriePorTitulo() {
         System.out.println("Digite o nome da série");
         String nomeSerie = leitura.nextLine();
-        Optional<Serie> serieOptional = repository.findByTituloContainingIgnoreCase(nomeSerie);
+        serieOptional = repository.findByTituloContainingIgnoreCase(nomeSerie);
         if (serieOptional.isPresent()) {
             System.out.println(serieOptional.get());
         } else {
@@ -186,7 +231,7 @@ public class Principal {
         leitura.nextLine();
         System.out.println("Avaliações a partir de qual valor?");
         Double avaliacao = leitura.nextDouble();
-        List<Serie> serieList = repository.findByTotalTemporadasLessThanEqualAndAvaliacaoGreaterThanEqual(totalTemporadas, avaliacao);
+        List<Serie> serieList = repository.seriesPorTemporadaEAvaliacao(totalTemporadas, avaliacao);
         if (!serieList.isEmpty()) {
             serieList.forEach(System.out::println);
         } else {
