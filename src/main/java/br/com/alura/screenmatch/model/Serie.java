@@ -38,8 +38,6 @@ public class Serie {
     public Serie() {
     }
 
-    ;
-
     public String getTitulo() {
         return titulo;
     }
